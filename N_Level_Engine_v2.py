@@ -71,7 +71,7 @@ def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
     return [A,b]
 
 ##############################################################################################
-def getSteadyStateReal(system_size, omega1, omega2, gammaH, gammaC, Th, Tc, 
+def getSteadyStateRe(system_size, omega1, omega2, gammaH, gammaC, Th, Tc, 
                         p_matrix, gap, detuning, Lambda):
     
     #This function returns the  REAL PART of the steady state density matrix given the parameter
@@ -116,10 +116,10 @@ def getSteadyStateReal(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
             break
         if check > 0:
             break
-    
-    return np.real(steadyState)
+    steadyStateReal = np.real(steadyState)
+    return steadyStateReal
 
-def getSteadyStateImag(system_size, omega1, omega2, gammaH, gammaC, Th, Tc, 
+def getSteadyStateIm(system_size, omega1, omega2, gammaH, gammaC, Th, Tc, 
                         p_matrix, gap, detuning, Lambda):
     
     #This function returns the  IMAGINARY PART of the steady state density matrix given the parameter
@@ -164,8 +164,8 @@ def getSteadyStateImag(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
             break
         if check > 0:
             break
-    
-    return np.imag(steadyState)
+    steadyStateImag = np.imag(steadyState)
+    return steadyStateImag
 
 ##########################################################################################
 def powerSS(steadystate, omega1, omega2, gap, Lambda):
