@@ -186,6 +186,9 @@ def uniform_correlation_matrix(N):
             corr_matrix[i,j] = corr_matrix[0,i]*corr_matrix[0,j]+np.sqrt((1-corr_matrix[0,i]**2)*(1-corr_matrix[0,j]**2))
             corr_matrix[j,i] = corr_matrix[i,j]
     return(corr_matrix)
+###########################################################################################
+def pmatrix_2by2(p):
+    return np.array([[1,p],[p,1]])
 #def smax(steadystate):
     #This function computes maximum synchronization measure
 #   size = len(steadystate)
