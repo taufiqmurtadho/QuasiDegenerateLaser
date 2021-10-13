@@ -188,7 +188,7 @@ def uniform_correlation_matrix(N):
     return(corr_matrix)
 ###########################################################################################
 def pmatrix_2by2(p):
-    return np.array([[1,p],[p,1]])
+    return np.array([[0,p],[p,0]])
 #def smax(steadystate):
     #This function computes maximum synchronization measure
 #   size = len(steadystate)
