@@ -7,5 +7,5 @@ function ss = getSteadyState(system_size, omega1, omega2, gammaH, gammaC, Th, Tc
     ssRe_mat = reshape(ssRe_mat, [system_size, system_size]);
     ssIm_mat = double(py.array.array('d',py.numpy.nditer(ssIm_py)));
     ssIm_mat = reshape(ssIm_mat, [system_size, system_size]);
-    ss = ssRe_mat + 1i*ssIm_mat;
+    ss = ssRe_mat - 1i*ssIm_mat;
 end
