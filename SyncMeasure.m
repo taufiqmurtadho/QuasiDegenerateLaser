@@ -4,11 +4,11 @@ function S = SyncMeasure(steadystate, phases)
     end
     S = 0;
     for x = 1:length(phases)
-        S = S + real(steadystate(2,x+2)*exp(-1i*phases(x)));
+        S = S + real(steadystate(2,x+2)*exp(1i*phases(x)));
     end
-    for x = 1:length(phases)
-        for y = x+1:length(phases)
-            S = S + real(steadystate(x,y)*exp(1i*(phases(x)-phases(y))));
+    for x = 3:length(steadystate)
+        for y = x+1:length(steadystate)
+            S = S + real(steadystate(x,y)*exp(1i*(phases(x-2)-phases(y-2))));
         end 
     end 
 end
