@@ -66,8 +66,10 @@ def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
                 for k in range(N+1):
                     A[j+(N+1)*i, (N+2)*k] += -gammaH*p_matrix[i-1, j-1]*(nh[i-1]+nh[j-1])
                     if k>0:
-                        A[j+(N+1)*i, k+(N+1)*i] += -gammaH*(1+nh[k-1])*p_matrix[j-1, k-1]
-                        A[j+(N+1)*i, j+(N+1)*k] += -gammaH*(1+nh[k-1])*p_matrix[i-1, k-1]
+                        if k!=j:
+                            A[j+(N+1)*i, k+(N+1)*i] += -gammaH*(1+nh[j-1])*p_matrix[j-1, k-1]
+                        if k!=i:
+                            A[j+(N+1)*i, j+(N+1)*k] += -gammaH*(1+nh[i-1])*p_matrix[k-1, i-1]
     return [A,b]
 
 ##############################################################################################
@@ -189,6 +191,8 @@ def uniform_correlation_matrix(N):
 ###########################################################################################
 def pmatrix_2by2(p):
     return np.array([[0,p],[p,0]])
+def ones(n):
+    return np.ones((n,n))
 #def smax(steadystate):
     #This function computes maximum synchronization measure
 #   size = len(steadystate)

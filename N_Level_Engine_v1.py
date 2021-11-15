@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.linalg as la
+import numpy.random as random
 #from scipy import optimize
 #################################################################################
 def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
@@ -12,7 +13,7 @@ def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
 
     #Calculating the column vector coefficients b
     b = np.zeros((N+1)**2)
-    b[0] = -2*nc*gammaC
+    #b[0] = -2*nc*gammaC
     for i in range(N+1):
         if i == 0:
             b[i] = -2*nc*gammaC
@@ -59,14 +60,17 @@ def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
     for i in range(1,N+1):
         for j in range(1,N+1):
             if i!=j:
+                #print((i,j))
                 A[j+(N+1)*i, j+(N+1)*i]+= 1j*(j-i)*gap-gammaH*(2+nh[i-1]+nh[j-1])
                 A[j+(N+1)*i, j] += -1j*Lambda
                 A[j+(N+1)*i, (N+1)*i] += 1j*Lambda
                 for k in range(N+1):
                     A[j+(N+1)*i, (N+2)*k] += -gammaH*p_matrix[i-1, j-1]*(nh[i-1]+nh[j-1])
                     if k>0:
-                        A[j+(N+1)*i, k+(N+1)*i] += -gammaH*(1+nh[k-1])*p_matrix[j-1, k-1]
-                        A[j+(N+1)*i, j+(N+1)*k] += -gammaH*(1+nh[k-1])*p_matrix[i-1, k-1]
+                        if k!=j:
+                            A[j+(N+1)*i, k+(N+1)*i] += -gammaH*(1+nh[j-1])*p_matrix[j-1, k-1]
+                        if k!=i:
+                            A[j+(N+1)*i, j+(N+1)*k] += -gammaH*(1+nh[i-1])*p_matrix[k-1, i-1]
     return [A,b]
 
 ##############################################################################################
@@ -126,6 +130,17 @@ def powerSS(steadystate, omega1, omega2, gap, Lambda):
         power+=-2*Lambda*(omega2-omega1+i*gap/(len(steadystate)-3))*steadystate[1,i+2].imag
     return power
 
+
+def correlation_matrix(N):
+    #This is a function to generate a correlation matrix by uniformly sampling dipole angular orientation
+    corr_matrix = np.identity(N)
+    for i in range(N-1):
+        corr_matrix[0,i+1] = np.cos(2*np.pi*random.uniform())
+    for i in range(0,N):
+        for j in range(i+1, N):
+            corr_matrix[i,j] = corr_matrix[0,i]*corr_matrix[0,j]+np.sqrt((1-corr_matrix[0,i]**2)*(1-corr_matrix[0,j]**2))
+            corr_matrix[j,i] = corr_matrix[i,j]
+    return(corr_matrix)
 ##########################################################################################
 #def smax(steadystate):
     #This function computes maximum synchronization measure
