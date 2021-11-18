@@ -8,9 +8,9 @@ def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
     #This function will return [A,b] where steady-state
     #subspace x satisfies Ax = b
     N = system_size -2; #the number of degenerate levels
-    nh = [1/(np.exp((omega2+i*gap/(N-1))/Th)-1) for i in range(N)]
+    spacing = gap/(N-1) #spacing of two quasi-degenerate level
+    nh = [1/(np.exp((omega2+i*spacing)/Th)-1) for i in range(N)]
     nc = 1/(np.exp(omega1/Tc)-1)
-
     #Calculating the column vector coefficients b
     b = np.zeros((N+1)**2)
     #b[0] = -2*nc*gammaC
@@ -45,9 +45,9 @@ def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
                 A[(N+2)*i, j+(N+1)*i] += -gammaH*p_matrix[i-1, j-1]*(1+nh[j-1])
     #Non-degenerate coherences
     for i in range(1, N+1):
-        A[i,i] +=  -gammaH*(1+nh[j-1])-gammaC*(1+nc)+1j*((i-1)*gap-gap/2-detuning)
+        A[i,i] +=  -gammaH*(1+nh[j-1])-gammaC*(1+nc)+1j*((i-1)*spacing-gap/2-detuning)
         A[i,0] += 1j*Lambda
-        A[(N+1)*i, (N+1)*i] = -gammaH*(1+nh[j-1])-gammaC*(1+nc)-1j*((i-1)*gap-gap/2-detuning)
+        A[(N+1)*i, (N+1)*i] = -gammaH*(1+nh[j-1])-gammaC*(1+nc)-1j*((i-1)*spacing-gap/2-detuning)
         A[(N+1)*i,0] += -1j*Lambda
         for j in range(1, N+1):
             A[i, i+(N+1)*j] += -1j*Lambda
@@ -61,7 +61,7 @@ def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
         for j in range(1,N+1):
             if i!=j:
                 #print((i,j))
-                A[j+(N+1)*i, j+(N+1)*i]+= 1j*(j-i)*gap-gammaH*(2+nh[i-1]+nh[j-1])
+                A[j+(N+1)*i, j+(N+1)*i]+= 1j*(j-i)*spacing-gammaH*(2+nh[i-1]+nh[j-1])
                 A[j+(N+1)*i, j] += -1j*Lambda
                 A[j+(N+1)*i, (N+1)*i] += 1j*Lambda
                 for k in range(N+1):
@@ -100,7 +100,7 @@ def getSteadyState(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
     for i in range(system_size-1):
         check = 0
         for j in range(i+1, system_size-1):
-            if np.abs(np.conj(subSteadyState[i,j])-subSteadyState[j,i])>tol:
+            if np.abs(np.conj(subSteadyState[i,j])-subSteadyState[j,i])>10**(-13):
                 print("WARNING: the steady-state is not Hermitian")
                 print(np.abs(np.conj(subSteadyState[i,j])-subSteadyState[j,i]))
                 check+=1
