@@ -45,8 +45,8 @@ def liouv_matrix(L, omega1, omega2, gammaH, gammaC, Th, Tc, p_matrix, gap, detun
     liouv[1, 1] = 1j*(omega1+omega2+gap/2+detuning)/2 - gammaC*(1+2*nc)
     liouv[L,L] = -1j*(omega1+omega2+gap/2+detuning)/2 - gammaC*(1+2*nc)
     for j in range(2,L):
-        liouv[j,j] = 1j*((omega1+omega2-gap/2-detuning)/2+ (j-2)*gap/(N-1)) - gammaH*(1+2*nh[j-2])
-        liouv[j*L, j*L] = 1j*((omega1+omega2-gap/2-detuning)/2+ (j-2)*gap/(N-1)) - gammaH*(1+2*nh[j-2])
+        liouv[j,j] = 1j*((omega1+omega2-gap/2-detuning)/2+ (j-2)*gap/(N-1)) - gammaH*nh[j-2]
+        liouv[j*L, j*L] = 1j*((omega1+omega2-gap/2-detuning)/2+ (j-2)*gap/(N-1)) - gammaH*nh[j-2]
         
         #driven external coherence
         liouv[L+j, L+j] = -gammaC*(1+nc) -1j*(detuning + gap/2+(j-2)*gap/(N-1))
@@ -55,24 +55,31 @@ def liouv_matrix(L, omega1, omega2, gammaH, gammaC, Th, Tc, p_matrix, gap, detun
         liouv[j*L+1, L+1] = -1j*Lambda
         for k in range(2,L):
             liouv[L+j, k*L+j] += -1j*Lambda
-            liouv[L+j, j*L+k] += 1j*Lambda
+            liouv[j*L+1, j*L+k] += 1j*Lambda
             liouv[L+j, L+j] += -gammaH*(1+nh[k-2])*p_matrix[j-2,k-2]
             liouv[j*L+1, j*L+1] += -gammaH*(1+nh[k-2])*p_matrix[j-2,k-2]
             #for non-driven external
-            liouv[j,j]+= -gammaH*p_matrix[j-2,k-2]*(1+nh[k-2])
+            liouv[j,j] += -gammaH*p_matrix[j-2,k-2]*(1+nh[k-2])
             liouv[j*L, j*L] += -gammaH*p_matrix[j-2,k-2]*(1+nh[k-2])
     
     #EOM for internal coherence
     for j in range(2,L):
-        for k in range(2,L):
-            if j!=k:
-                liouv[j*L+k, j*L+k] += 1j*(j-k)*gap/(N-1) - gammaH*(2+nh[j-2]+nh[k-2])
-                #liouv[j*L+k, 0] = gammaH*(nh[j-2]+nh[k-2])*p_matrix[j-2,k-2]
-                liouv[j*L+k, L+k] += -1j*Lambda
-                liouv[j*L+k, j*L+1] += 1j*Lambda
-                for l in range(2,L):
-                    liouv[j*L+k, j*L+l] += -gammaH*(1+nh[l-2])*p_matrix[k-2, l-2]
-                    liouv[j*L+k, l*L+k] += -gammaH*(1+nh[l-2])*p_matrix[j-2,l-2]
+        for k in range(j+1,L):
+            liouv[j*L+k, j*L+k] = 1j*(j-k)*gap/(N-1)
+            liouv[j*L+k, 0] = gammaH*(nh[j-2]+nh[k-2])*p_matrix[j-2,k-2]
+            liouv[j*L+k, L+k] = -1j*Lambda
+            liouv[j*L+k, j*L+1] = 1j*Lambda
+            
+            #conjugate
+            liouv[k*L+j, k*L+j] = 1j*(k-j)*gap/(N-1)
+            liouv[k*L+j, 0] = gammaH*(nh[j-2]+nh[k-2])*p_matrix[j-2,k-2]
+            liouv[k*L+j, k*L+1] = 1j*Lambda
+            liouv[k*L+j, L+j] = -1j*Lambda
+            for l in range(2,L):
+                liouv[j*L+k, j*L+l] += -gammaH*(1+nh[l-2])*p_matrix[k-2, l-2]
+                liouv[j*L+k, l*L+k] += -gammaH*(1+nh[l-2])*p_matrix[j-2,l-2]
+                liouv[k*L+j, l*L+j] += -gammaH*(1+nh[l-2])*p_matrix[k-2, l-2]
+                liouv[k*L+j, k*L+l] += -gammaH*(1+nh[l-2])*p_matrix[j-2,l-2]
     
     return liouv
 
