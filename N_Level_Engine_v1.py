@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as la
 import numpy.random as random
+import scipy.stats
 #from scipy import optimize
 #################################################################################
 def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
@@ -116,6 +117,7 @@ def getSteadyState(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
             print("WARNING: the steady-state is not positive")
             print(x)
             check+=1
+            print(min(la.eigvals(p_matrix)))
             break
         if check > 0:
             break
@@ -130,17 +132,88 @@ def powerSS(steadystate, omega1, omega2, gap, Lambda):
         power+=-2*Lambda*(omega2-omega1+i*gap/(len(steadystate)-3))*steadystate[1,i+2].imag
     return power
 
+def hotbath_coh_heatCurrentSS(steadyState, omega2, gammaH, Th, p_matrix, gap):
+    size = len(steadyState)
+    heatCurrent = 0
+    omegas = [omega2+(i-2)*gap for i in range(2,size)]
+    nh = [1/(np.exp(omegas[i-2]/Th)-1) for i in range(2,size)]
+    for i in range(2,size):
+        for j in range(i+1,size):
+            heatCurrent+= -gammaH*((1+nh[i-2])*omegas[j-2]+(1+nh[j-2])*omegas[i-2])*p_matrix[i-2,j-2]*(steadyState[i,j]+steadyState[j,i])
+    return np.real(heatCurrent)
 
-def correlation_matrix(N):
+def hotbath_incoh_heatCurrentSS(steadyState, omega2, gammaH, Th, p_matrix, gap):
+    size = len(steadyState)
+    heatCurrent = 0
+    omegas = [omega2+(i-2)*gap for i in range(2,size)]
+    nh = [1/(np.exp(omegas[i-2]/Th)-1) for i in range(2,size)]
+    for i in range(2,size):
+        heatCurrent+=2*gammaH*omegas[i-2]*(nh[i-2]*steadyState[0,0]-(1+nh[i-2])*steadyState[i,i])
+    return np.real(heatCurrent)
+
+
+def hotbath_heatCurrentSS(steadyState, omega2, gammaH, Th, p_matrix, gap):
+    size = len(steadyState)
+    heatCurrent = 0
+    omegas = [omega2+(i-2)*gap for i in range(2,size)]
+    nh = [1/(np.exp(omegas[i-2]/Th)-1) for i in range(2,size)]
+    for i in range(2,size):
+        heatCurrent+=2*gammaH*omegas[i-2]*(nh[i-2]*steadyState[0,0]-(1+nh[i-2])*steadyState[i,i])
+    for i in range(2,size):
+        for j in range(i+1,size):
+            heatCurrent+= -gammaH*((1+nh[i-2])*omegas[j-2]+(1+nh[j-2])*omegas[i-2])*p_matrix[i-2,j-2]*(steadyState[i,j]+steadyState[j,i])
+    return np.real(heatCurrent)
+
+def coldbath_heatCurrentSS(steadyState, omega1, gammaC, Tc):
+    nc = 1/(np.exp(omega1/Tc)-1)
+    return np.real(2*omega1*gammaC*(nc*steadyState[0,0]-(1+nc)*steadyState[1,1]))
+
+
+################################################################################
+def uniform_correlation_matrix(N):
     #This is a function to generate a correlation matrix by uniformly sampling dipole angular orientation
     corr_matrix = np.identity(N)
+    theta = [random.uniform(0,np.pi) for i in range(N-1)] #Sampling polar angles
+    phi = [random.uniform(0,2*np.pi) for i in range(N-1)] #Sampling azimuthal angles
     for i in range(N-1):
-        corr_matrix[0,i+1] = np.cos(2*np.pi*random.uniform())
-    for i in range(0,N):
+        corr_matrix[0,i+1] = np.cos(theta[i])
+        corr_matrix[i+1,0] = corr_matrix[0,i+1]
+    for i in range(1,N-1):
         for j in range(i+1, N):
-            corr_matrix[i,j] = corr_matrix[0,i]*corr_matrix[0,j]+np.sqrt((1-corr_matrix[0,i]**2)*(1-corr_matrix[0,j]**2))
+            corr_matrix[i,j] = np.sin(theta[i-1])*np.sin(theta[j-1])*np.cos(phi[i-1]-phi[j-1])+np.cos(theta[j-1])*np.cos(theta[i-1])
             corr_matrix[j,i] = corr_matrix[i,j]
     return(corr_matrix)
+
+#LKJ Sampling
+#This function samples a correlation matrix from an LKJ distribution
+#Code is written by Ben Lambert and Fergus Cooper in the app "Distribution Zoo"
+#https://ben18785.shinyapps.io/distribution-zoo/
+def lkj_sampling(nu, d, n=1):
+    r_list = []
+    for i in range(n):
+        if d==1:
+            r = np.array(1)
+        elif d==2:
+            rho = 2 * scipy.stats.beta.rvs(nu, nu, 0, 1, 1) - 1
+            r = np.array([[1, rho], [rho, 1]])
+        else:
+            beta = nu + (d - 2.0) / 2.0
+            u = float(scipy.stats.beta.rvs(beta, beta, 0, 1, 1))
+            r_12 = 2 * u - 1
+            r = np.array([[1, r_12], [r_12, 1]])
+            for m in range(1, d - 1):
+                beta -= 0.5
+                y = scipy.stats.beta.rvs((m + 1) / 2.0, beta, 0, 1, 1)
+                a = scipy.stats.norm.rvs(0, 1, (m + 1))
+                anorm = np.sqrt(np.sum(a**2))
+                u = a / anorm
+                w = np.sqrt(y) * u
+                A = scipy.linalg.cholesky(r)
+                z = np.matmul(w, A)
+                z.shape = (len(z), 1)
+                r = np.block([[r, z], [z.transpose(), 1]])
+        r_list.append(r)
+    return r_list
 ##########################################################################################
 #def smax(steadystate):
     #This function computes maximum synchronization measure
@@ -168,3 +241,17 @@ def correlation_matrix(N):
 #    bounds = [(-np.pi, np.pi)]*N
 #    result = optimize.shgo(objective_function, bounds = bounds)
 #   return result
+##############################################################################################
+def phase_distribution(steadystate):
+    N = len(steadystate)
+    def Q_function(phases):
+        res = 0
+        if len(phases) == N - 2:
+            for i in range(1,N):
+                for j in range(i+1, N):
+                    if i == 1:
+                        res+=np.real(steadystate[i,j]*np.exp(1j*phases[j-2]))
+                    else:
+                        res+=np.real(steadystate[i,j]*np.exp(1j*(phases[j-2]-phases[i-2])))
+        return res
+    return Q_function
