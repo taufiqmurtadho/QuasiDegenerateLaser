@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.linalg as la
 import numpy.random as rndm
-#from scipy import optimize
+import scipy.stats
 #################################################################################
 def steadystate_linsystem(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
                         p_matrix, gap, detuning, Lambda):
@@ -151,6 +151,10 @@ def getSteadyStateIm(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
                 print("WARNING: the steady-state is not Hermitian")
                 print(np.abs(np.conj(subSteadyState[i,j])-subSteadyState[j,i]))
                 check+=1
+                for i in range(len(p_matrix)):
+                    for j in range(i+1, len(p_matrix)):
+                        if 1-p_matrix[i,j]<10**(-8):
+                            print(p_matrix[i,j])
                 break
         if check >0:
             break
@@ -163,6 +167,10 @@ def getSteadyStateIm(system_size, omega1, omega2, gammaH, gammaC, Th, Tc,
             print("WARNING: the steady-state is not positive")
             print(x)
             check+=1
+            for i in range(len(p_matrix)):
+                for j in range(i+1, len(p_matrix)):
+                    if 1-p_matrix[i,j]<10**(-8):
+                        print(p_matrix[i,j])
             break
         if check > 0:
             break
@@ -181,18 +189,59 @@ def powerSS(steadystate, omega1, omega2, gap, Lambda):
 def uniform_correlation_matrix(N):
     #This is a function to generate a correlation matrix by uniformly sampling dipole angular orientation
     corr_matrix = np.identity(N)
+    theta = [rndm.uniform(0,np.pi) for i in range(N-1)] #Sampling polar angles
+    phi = [rndm.uniform(0,2*np.pi) for i in range(N-1)] #Sampling azimuthal angles
     for i in range(N-1):
-        corr_matrix[0,i+1] = np.cos(np.pi*(2*rndm.uniform()-1))
-    for i in range(0,N):
+        corr_matrix[0,i+1] = np.cos(theta[i])
+        corr_matrix[i+1,0] = corr_matrix[0,i+1]
+    for i in range(1,N-1):
         for j in range(i+1, N):
-            corr_matrix[i,j] = corr_matrix[0,i]*corr_matrix[0,j]+np.sqrt((1-corr_matrix[0,i]**2)*(1-corr_matrix[0,j]**2))
+            corr_matrix[i,j] = np.sin(theta[i-1])*np.sin(theta[j-1])*np.cos(phi[i-1]-phi[j-1])+np.cos(theta[j-1])*np.cos(theta[i-1])
             corr_matrix[j,i] = corr_matrix[i,j]
     return(corr_matrix)
+
+#LKJ Sampling
+#This function samples a correlation matrix from an LKJ distribution
+#Code is written by Ben Lambert and Fergus Cooper in the app "Distribution Zoo"
+#https://ben18785.shinyapps.io/distribution-zoo/
+def lkj_sampling(nu, d, n=1):
+    r_list = []
+    for i in range(n):
+        if d==1:
+            r = np.array(1)
+        elif d==2:
+            rho = 2 * scipy.stats.beta.rvs(nu, nu, 0, 1, 1) - 1
+            r = np.array([[1, rho], [rho, 1]])
+        else:
+            beta = nu + (d - 2.0) / 2.0
+            u = float(scipy.stats.beta.rvs(beta, beta, 0, 1, 1))
+            r_12 = 2 * u - 1
+            r = np.array([[1, r_12], [r_12, 1]])
+            for m in range(1, d - 1):
+                beta -= 0.5
+                y = scipy.stats.beta.rvs((m + 1) / 2.0, beta, 0, 1, 1)
+                a = scipy.stats.norm.rvs(0, 1, (m + 1))
+                anorm = np.sqrt(np.sum(a**2))
+                u = a / anorm
+                w = np.sqrt(y) * u
+                A = scipy.linalg.cholesky(r)
+                z = np.matmul(w, A)
+                z.shape = (len(z), 1)
+                r = np.block([[r, z], [z.transpose(), 1]])
+        r_list.append(r)
+    return r_list[0]
 ###########################################################################################
-def pmatrix_2by2(p):
-    return np.array([[0,p],[p,0]])
-def ones(n):
-    return np.ones((n,n))
+def pmatrix_equal(size, p):
+    pmatrix = np.identity(size)
+    for i in range(size):
+        for j in range(size):
+            if i!=j:
+                pmatrix[i,j] = p
+    eigval = la.eigvals(pmatrix)
+    if min(eigval)<0:
+        print('WARNING: P-MATRIX IS NOT POSITIVE')
+        print(min(eigval))
+    return pmatrix
 #def smax(steadystate):
     #This function computes maximum synchronization measure
 #   size = len(steadystate)
